@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Recommendations</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+</head>
+<body class="bg-light">
+
+    <div id="app" class="container text-center mt-4">
+        <div class="logo">
+            <img src="/static/logo.png" alt="Spotify Logo" class="img-fluid" width="200">
+        </div>
+
+        <div class="search-container mt-4 mb-5 position-relative">
+            <input type="text" v-model="searchQuery" @input="fetchAutocomplete" class="form-control form-control-lg mx-auto" style="max-width: 600px; position: relative; z-index: 1000;" placeholder="Search for a song or artist...">
+            <div v-if="autocompleteData.length" class="list-group position-absolute  mb-5" style="max-width: 600px; width: 100%; top: 100%; left: 50%; transform: translateX(-50%); z-index: 1000; border-radius: 0 0 5px 5px;">
+                <a v-for="(item, index) in autocompleteData" :key="index" href="#" class="list-group-item list-group-item-action" @click.prevent="addToSuggestions(item)">
+                    [[ item.name ]]
+                </a>
+            </div>
+        </div>
+
+        <div style="margin-top: 240px;"><h2 class="text-center mt-5">Suggestions</h2></div>
+
+
+        <div class="table-responsive mt-4">
+            <table class="table table-striped table-hover table-bordered mx-auto" style="max-width: 90%;">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Song</th>
+                        <th>Artist</th>
+                        <th>Album</th>
+                        <th>Preview</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(item, index) in suggestions" :key="index">
+                        <td>[[ index + 1 ]]</td>
+                        <td>[[ item.song ]]</td>
+                        <td>[[ item.artist ]]</td>
+                        <td>[[ item.album ]]</td>
+                        <td><a :href="item.preview" target="_blank"><iframe style="border-radius:12px" :src="'https://open.spotify.com/embed/track/' + item.trackid + '?utm_source=generator'" width="100%" height="100" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></a></td>
+                        <!--<td><a :href="item.preview" target="_blank">Preview</a></td>-->
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <button class="btn btn-primary mt-4" @click="recommend()">Recommend</button>
+
+        <div style="margin-top: 240px;"><h2 class="text-center mt-5">Recommendations</h2></div>
+
+
+        <div class="table-responsive mt-4" style="margin-bottom: 300px;">
+            <table class="table table-striped table-hover table-bordered mx-auto" style="max-width: 90%;">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Song</th>
+                        <th>Artist</th>
+                        <th>Album</th>
+                        <th>Preview</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(item, index) in recommendations" :key="index">
+                        <td>[[ index + 1 ]]</td>
+                        <td>[[ item.song ]]</td>
+                        <td>[[ item.artist ]]</td>
+                        <td>[[ item.album ]]</td>
+                        <td style = "width: 400px;">
+                            <a :href="item.preview" target="_blank">
+                                <iframe style="border-radius:12px" :src="'https://open.spotify.com/embed/track/' + item.id + '?utm_source=generator'" width="100%" height="100" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy">
+
+                                </iframe>
+                            </a>
+                        </td>
+                        <!--<td><a :href="item.preview" target="_blank">Preview</a></td>-->
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            delimiters: ['[[', ']]'],
+            data: {
+                searchQuery: "",
+                autocompleteData: [],
+                autocompleteDatas: [
+                    {name: 'brunos mars'},
+                    {name: 'brunos mars'},
+                    {name: 'brunos mars'}
+                ],
+                dummyRecommendations: [
+                    {
+                        song : 'Uptown Funk',
+                        artist : 'brunos mars',
+                        album : 'Albumc',
+                        preview : '#'
+                    },
+                    {
+                        song : 'Getaway Car',
+                        artist : 'Taylor Swift',
+                        album : '1989',
+                        preview : '#'
+                    },
+                ],
+                suggestions: [],
+                recommendations: []
+            },
+            methods: {
+                addToSuggestions(item) {
+                    this.suggestions.push({
+                        trackid: item.id,
+                        song: item.name, // Assuming item.name is the song name
+                        artist: item.artists, // Placeholder or dynamic value
+                        album: item.album, // Placeholder or dynamic value
+                        preview: 'https://open.spotify.com/track/' + item.id // Placeholder or dynamic value
+                    });
+
+                    console.log(this.suggestions);
+                }, 
+                fetchAutocomplete() {
+                    if (this.searchQuery.length > 2) {
+                        fetch(`/autocomplete?query=${this.searchQuery}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                this.autocompleteData = data;
+                            });
+                    } else {
+                        this.autocompleteData = [];
+                    }
+                },
+                fetchRecommendations() {
+                    fetch(`/recommendations?query=${this.searchQuery}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            this.recommendations = data;
+                        });
+                },
+                recommend() {
+                    const trackArray = this.suggestions.map(item => item.trackid); // Extract track IDs from suggestions array
+
+                    // Check if there are any track IDs to send
+                    if (trackArray.length === 0) {
+                        alert("Please add songs to suggestions before requesting recommendations.");
+                        return;
+                    }
+
+                    // Call the Flask API to get recommendations
+                    fetch('/song', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ track_ids: trackArray }),
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error("Failed to fetch recommendations.");
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Process the API response and format it for the recommendations table
+                            this.recommendations = [];
+
+                            console.log(data);
+                            for (const trackId in data) {
+                                const tracks = data[trackId];
+                                tracks.forEach(track => {
+                                    this.recommendations.push({
+                                        id : track.id,
+                                        song: track.name,
+                                        artist: track.artists,
+                                        album: track.album || "Unknown Album", // Default value for album if not provided
+                                        preview: 'https://open.spotify.com/track/' + track.id // Default value for preview link if not provided
+                                    });
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error fetching recommendations:", error);
+                            alert("Failed to get recommendations. Please try again.");
+                        });
+                }
+
+            },
+            watch: {
+                searchQuery(newQuery) {
+                    if (newQuery.length === 0) {
+                        this.autocompleteData = [];
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
